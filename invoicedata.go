@@ -55,6 +55,7 @@ type IInvoices interface {
 	Read(reader io.Reader) ([]*Invoice, error)
 }
 
+/*
 type InvoicesMarshaler interface { //запаковать
 	MarshalInvoices(writer io.Writer, invoices []*Invoice) error
 }
@@ -62,7 +63,7 @@ type InvoicesMarshaler interface { //запаковать
 type InvoicesUnmarshaler interface { //распаковать
 	UnmarshalInvoices(reader io.Reader) ([]*Invoice, error)
 }
-
+*/
 func main() {
 	log.SetFlags(0)
 	report := false
@@ -140,25 +141,21 @@ func openInvoiceFile(filename string) (io.ReadCloser, func(), error) {
 }
 
 func readInvoices(reader io.Reader, suffix string) ([]*Invoice, error) {
-	var unmarshaler InvoicesUnmarshaler
 	var inv IInvoices
 	switch suffix {
 	case ".gob":
 		inv = Gob_Invoice{}
-		return inv.Read(reader)
 	case ".inv":
-		unmarshaler = InvMarshaler{}
+		inv = Inv_Invoice{}
 	case ".jsn", ".json":
 		inv = JSON_Invoice{}
-		return inv.Read(reader)
-		//unmarshaler = JSONMarshaler{}
 	case ".txt":
-		unmarshaler = TxtMarshaler{}
+		inv = Txt_Invoice{}
 	case ".xml":
-		unmarshaler = XMLMarshaler{}
+		inv = XML_Invoice{}
 	}
-	if unmarshaler != nil {
-		return unmarshaler.UnmarshalInvoices(reader)
+	if inv != nil {
+		return inv.Read(reader)
 	}
 	return nil, fmt.Errorf("unrecognized input suffix: %s", suffix)
 }
@@ -191,24 +188,21 @@ func createInvoiceFile(filename string) (io.WriteCloser, func(), error) {
 }
 
 func writeInvoices(writer io.Writer, suffix string, invoices []*Invoice) error {
-	var marshaler InvoicesMarshaler
 	var inv IInvoices
 	switch suffix {
 	case ".gob":
 		inv = Gob_Invoice{}
-		return inv.Write(writer, invoices)
 	case ".inv":
-		marshaler = InvMarshaler{}
+		inv = Inv_Invoice{}
 	case ".jsn", ".json":
 		inv = JSON_Invoice{}
-		return inv.Write(writer, invoices)
 	case ".txt":
-		marshaler = TxtMarshaler{}
+		inv = Txt_Invoice{}
 	case ".xml":
-		marshaler = XMLMarshaler{}
+		inv = XML_Invoice{}
 	}
-	if marshaler != nil {
-		return marshaler.MarshalInvoices(writer, invoices)
+	if inv != nil {
+		return inv.Write(writer, invoices)
 	}
 	return errors.New("unrecognized output suffix")
 }

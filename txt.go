@@ -1,16 +1,3 @@
-// Copyright © 2011-12 Qtrac Ltd.
-//
-// This program or package and any associated files are licensed under the
-// Apache License, Version 2.0 (the "License"); you may not use these files
-// except in compliance with the License. You can get a copy of the License
-// at: http://www.apache.org/licenses/LICENSE-2.0.
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package main
 
 import (
@@ -24,13 +11,12 @@ import (
 
 const noteSep = ":"
 
-type TxtMarshaler struct{}
+type Txt_Invoice struct{}
 
-func (TxtMarshaler) MarshalInvoices(writer io.Writer, invoices []*Invoice) error {
+func (Txt_Invoice) Write(writer io.Writer, invoices []*Invoice) error {
 	bufferedWriter := bufio.NewWriter(writer)
 	defer bufferedWriter.Flush()
-	var write writerFunc = func(format string,
-		args ...interface{}) error {
+	var write writerFunc = func(format string, args ...interface{}) error {
 		_, err := fmt.Fprintf(bufferedWriter, format, args...)
 		return err
 	}
@@ -78,8 +64,7 @@ func (write writerFunc) writeItems(items []*Item) error {
 	return nil
 }
 
-func (TxtMarshaler) UnmarshalInvoices(reader io.Reader) ([]*Invoice,
-	error) {
+func (Txt_Invoice) Read(reader io.Reader) ([]*Invoice, error) {
 	bufferedReader := bufio.NewReader(reader)
 	if err := checkTxtVersion(bufferedReader); err != nil {
 		return nil, err
@@ -111,8 +96,7 @@ func checkTxtVersion(bufferedReader *bufio.Reader) error {
 	return nil
 }
 
-func parseTxtLine(lino int, line string, invoices []*Invoice) ([]*Invoice,
-	error) {
+func parseTxtLine(lino int, line string, invoices []*Invoice) ([]*Invoice, error) {
 	var err error
 	if strings.HasPrefix(line, "INVOICE") {
 		var invoice *Invoice
@@ -131,8 +115,7 @@ func parseTxtLine(lino int, line string, invoices []*Invoice) ([]*Invoice,
 	return invoices, err
 }
 
-func parseTxtInvoice(lino int, line string) (invoice *Invoice,
-	err error) {
+func parseTxtInvoice(lino int, line string) (invoice *Invoice, err error) {
 	invoice = &Invoice{}
 	var raised, due string
 	if _, err = fmt.Sscanf(line, "INVOICE ID=%d CUSTOMER=%d "+

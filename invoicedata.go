@@ -50,11 +50,16 @@ type Item struct {
 	Note     string
 }
 
-type InvoicesMarshaler interface {
+type IInvoices interface {
+	Write(writer io.Writer, invoices []*Invoice) error
+	Read(reader io.Reader) ([]*Invoice, error)
+}
+
+type InvoicesMarshaler interface { //запаковать
 	MarshalInvoices(writer io.Writer, invoices []*Invoice) error
 }
 
-type InvoicesUnmarshaler interface {
+type InvoicesUnmarshaler interface { //распаковать
 	UnmarshalInvoices(reader io.Reader) ([]*Invoice, error)
 }
 
@@ -67,10 +72,16 @@ func main() {
 		args = args[1:]
 	}
 	if len(args) != 2 || args[0] == "-h" || args[0] == "--help" {
-		log.Fatalf("usage: %s [-t|--time] infile.ext outfile.ext\n"+
+		log.Fatalf("Использование: %s [-t|--time] infile.ext outfile.ext\n"+
+			"-t или --time показывать время чтения/записи файла, не обязателен\n"+
+			" infile.ext outfile.ext - начальный и результирующий файлы.\n"+
+			" расширения файлов должны быть .gob, .inv, .jsn, .json, .txt, "+
+			"или .xml, возможно в архиве gz (например .gob.gz)\n\n"+
+
+			"usage: %s [-t|--time] infile.ext outfile.ext\n"+
 			".ext may be any of .gob, .inv, .jsn, .json, .txt, "+
 			"or .xml, optionally gzipped (e.g., .gob.gz)\n",
-			filepath.Base(os.Args[0]))
+			filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 	}
 	inFilename, outFilename := args[0], args[1]
 	if inFilename == outFilename {
@@ -130,13 +141,17 @@ func openInvoiceFile(filename string) (io.ReadCloser, func(), error) {
 
 func readInvoices(reader io.Reader, suffix string) ([]*Invoice, error) {
 	var unmarshaler InvoicesUnmarshaler
+	var inv IInvoices
 	switch suffix {
 	case ".gob":
-		unmarshaler = GobMarshaler{}
+		inv = Gob_Invoice{}
+		return inv.Read(reader)
 	case ".inv":
 		unmarshaler = InvMarshaler{}
 	case ".jsn", ".json":
-		unmarshaler = JSONMarshaler{}
+		inv = JSON_Invoice{}
+		return inv.Read(reader)
+		//unmarshaler = JSONMarshaler{}
 	case ".txt":
 		unmarshaler = TxtMarshaler{}
 	case ".xml":
@@ -177,13 +192,16 @@ func createInvoiceFile(filename string) (io.WriteCloser, func(), error) {
 
 func writeInvoices(writer io.Writer, suffix string, invoices []*Invoice) error {
 	var marshaler InvoicesMarshaler
+	var inv IInvoices
 	switch suffix {
 	case ".gob":
-		marshaler = GobMarshaler{}
+		inv = Gob_Invoice{}
+		return inv.Write(writer, invoices)
 	case ".inv":
 		marshaler = InvMarshaler{}
 	case ".jsn", ".json":
-		marshaler = JSONMarshaler{}
+		inv = JSON_Invoice{}
+		return inv.Write(writer, invoices)
 	case ".txt":
 		marshaler = TxtMarshaler{}
 	case ".xml":
